@@ -1,0 +1,257 @@
+# ============================================================
+# 豆包 Seedance 视频生成 API - Curl 命令示例
+# ============================================================
+#
+# 服务地址: http://localhost:8000
+# 鉴权方式: Bearer Token (如果配置了 AUTH_TOKEN)
+#
+# 注意:
+# 1. 请将 <YOUR_TOKEN> 替换为实际的鉴权令牌
+# 2. 请将 localhost:8000 替换为实际的服务地址
+# 3. 如果未配置 AUTH_TOKEN，可以省略 Authorization 头
+# ============================================================
+
+
+# ============================================================
+# 1. 健康检查 (无需鉴权)
+# ============================================================
+# 检查服务状态，返回服务信息和可用接口列表
+
+curl -X GET "http://localhost:8000/" \
+  -H "Accept: application/json"
+
+
+# ============================================================
+# 2. 上传图片
+# ============================================================
+# 用于图生视频模式，上传图片后获取图片URL
+# 请将 /path/to/your/image.png 替换为实际图片路径
+
+curl -X POST "http://localhost:8000/api/upload" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -F "file=@/path/to/your/image.png"
+
+# Windows 路径示例:
+curl -X POST "http://localhost:8000/api/upload" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -F "file=@C:\Users\test\image.png"
+
+
+# ============================================================
+# 3. 创建视频 - 文生视频
+# ============================================================
+# 根据文本提示词生成视频
+#
+# 参数说明:
+# - model: 模型名称
+#   - seedance-1-5-pro-251215 (最新，支持声音)
+#   - seedance-1-0-pro-fast (快速)
+# - prompt: 视频描述提示词 (必填)
+# - duration: 视频时长，可选 4, 5, 8, 12 秒
+# - radio: 视频比例，可选 21:9, 16:9, 4:3, 1:1, 3:4, 9:16
+
+curl -X POST "http://localhost:8000/api/video/create" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -d '{
+    "model": "seedance-1-5-pro-251215",
+    "prompt": "一只可爱的猫咪在草地上奔跑，阳光明媚，电影级画面",
+    "duration": 5,
+    "radio": "16:9"
+  }'
+
+# 竖屏短视频示例 (抖音/Shorts):
+curl -X POST "http://localhost:8000/api/video/create" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -d '{
+    "model": "seedance-1-5-pro-251215",
+    "prompt": "城市夜景延时摄影，霓虹灯闪烁，车流如水",
+    "duration": 8,
+    "radio": "9:16"
+  }'
+
+
+# ============================================================
+# 4. 创建视频 - 图生视频
+# ============================================================
+# 基于参考图片生成视频
+# 需要先上传图片获取 URL，或使用已有的图片 URL
+
+curl -X POST "http://localhost:8000/api/video/create" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -d '{
+    "model": "seedance-1-5-pro-251215",
+    "prompt": "图片中的人物缓缓转头微笑，背景虚化，电影感",
+    "duration": 5,
+    "radio": "16:9",
+    "image": "https://example.com/your-uploaded-image.png"
+  }'
+
+
+# ============================================================
+# 5. 图生视频一体化接口
+# ============================================================
+# 自动完成图片上传并创建视频，一次请求搞定
+# 使用 multipart/form-data 格式
+
+curl -X POST "http://localhost:8000/api/video/create-with-image" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -F "prompt=图片中的场景动起来，添加微风吹动的效果" \
+  -F "model=seedance-1-5-pro-251215" \
+  -F "duration=5" \
+  -F "radio=16:9" \
+  -F "file=@/path/to/your/image.png"
+
+
+# ============================================================
+# 6. 创建视频并等待完成
+# ============================================================
+# 创建视频后自动轮询状态，直到视频生成完成或超时
+#
+# 参数说明:
+# - max_wait_seconds: 最大等待时间(秒)，默认300
+# - poll_interval: 轮询间隔(秒)，默认5
+
+curl -X POST "http://localhost:8000/api/video/create-and-wait?max_wait_seconds=300&poll_interval=5" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -d '{
+    "model": "seedance-1-5-pro-251215",
+    "prompt": "日落海滩，海浪轻拍沙滩，天空渐变成橙红色",
+    "duration": 5,
+    "radio": "16:9"
+  }'
+
+
+# ============================================================
+# 7. 获取视频列表
+# ============================================================
+# 返回当前账号下的所有视频记录
+
+curl -X GET "http://localhost:8000/api/videos" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Accept: application/json"
+
+
+# ============================================================
+# 8. 查询视频状态
+# ============================================================
+# 根据视频ID或任务ID查询生成进度和结果
+# 请将 <VIDEO_ID> 替换为实际的视频ID或任务ID
+
+curl -X GET "http://localhost:8000/api/video/<VIDEO_ID>/status" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Accept: application/json"
+
+# 示例:
+curl -X GET "http://localhost:8000/api/video/12345/status" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Accept: application/json"
+
+
+# ============================================================
+# 9. 获取视频统计
+# ============================================================
+# 返回视频总数等统计信息
+
+curl -X GET "http://localhost:8000/api/stats/video-count" \
+  -H "Authorization: Bearer <YOUR_TOKEN>" \
+  -H "Accept: application/json"
+
+
+# ============================================================
+# Postman 导入说明
+# ============================================================
+#
+# 方法1: 直接复制 curl 命令
+# 1. 打开 Postman
+# 2. 点击 "Import" 按钮
+# 3. 选择 "Raw text" 标签
+# 4. 粘贴上面的 curl 命令
+# 5. 点击 "Continue" -> "Import"
+#
+# 方法2: 手动创建请求
+# 1. 设置请求方法 (GET/POST)
+# 2. 输入 URL
+# 3. 在 Headers 标签添加:
+#    - Authorization: Bearer <YOUR_TOKEN>
+#    - Content-Type: application/json (POST JSON 请求)
+# 4. 在 Body 标签选择 raw -> JSON，粘贴请求体
+#
+# 方法3: 使用环境变量
+# 1. 创建环境变量:
+#    - base_url: http://localhost:8000
+#    - auth_token: <YOUR_TOKEN>
+# 2. 在请求中使用 {{base_url}} 和 {{auth_token}}
+#
+
+
+# ============================================================
+# 响应示例
+# ============================================================
+
+# 健康检查响应:
+# {
+#   "service": "豆包 Seedance 视频生成 API",
+#   "version": "1.0.0",
+#   "cookie_count": 2,
+#   "load_balance": "round-robin",
+#   "auth_enabled": true,
+#   "endpoints": {...}
+# }
+
+# 创建视频响应:
+# {
+#   "success": true,
+#   "message": "视频创建任务已提交 (文生视频)",
+#   "data": {
+#     "task": {
+#       "task_id": "xxx-xxx-xxx"
+#     }
+#   }
+# }
+
+# 视频列表响应:
+# {
+#   "success": true,
+#   "data": [
+#     {
+#       "id": 12345,
+#       "taskId": "xxx-xxx-xxx",
+#       "status": "completed",
+#       "videoUrl": "https://...",
+#       "prompt": "...",
+#       "createTime": "..."
+#     }
+#   ]
+# }
+
+# 视频状态响应:
+# {
+#   "success": true,
+#   "status": "completed",
+#   "video_url": "https://...",
+#   "data": {...}
+# }
+
+
+# ============================================================
+# 错误响应示例
+# ============================================================
+
+# 401 未授权 (缺少 Authorization 头):
+# {
+#   "detail": "Missing Authorization Header. Please provide 'Authorization: Bearer <token>'"
+# }
+
+# 403 禁止访问 (无效 Token):
+# {
+#   "detail": "Invalid or Expired Token"
+# }
+
+# 401 未配置 Cookie:
+# {
+#   "detail": "未配置SESSION_COOKIE"
+# }

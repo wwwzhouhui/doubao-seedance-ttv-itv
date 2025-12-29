@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  seedance-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: seedance-api:latest
+    container_name: seedance-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"  # 本地开发端口映射
+    environment:
+      # 豆包API配置
+      - DOUBAO_BASE_URL=https://doubao.happieapi.top
+      - DOUBAO_SESSION_COOKIE=${DOUBAO_SESSION_COOKIE}
+      # API鉴权Token (可选，不配置则不启用鉴权)
+      - AUTH_TOKEN=${AUTH_TOKEN}
+      # 服务配置 (PORT 用于兼容 Render 等 PaaS 平台)
+      - PORT=8000
+      - TZ=Asia/Shanghai
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 网络配置 (可选)
+# networks:
+#   default:
+#     name: seedance-network

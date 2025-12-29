@@ -1,0 +1,17 @@
+# 豆包 Seedance 视频生成 API 服务依赖
+
+# Web框架
+fastapi>=0.116.1
+uvicorn[standard]>=0.35.0
+
+# HTTP客户端
+httpx>=0.26.0
+
+# 数据验证
+pydantic>=2.5.3
+
+# 文件上传支持
+python-multipart>=0.0.20
+
+# 环境变量
+python-dotenv>=1.1.0

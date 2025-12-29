@@ -1,0 +1,24 @@
+curl 'https://doubao.happieapi.top/api/upload' \
+  -H 'accept: */*' \
+  -H 'accept-language: zh-CN,zh;q=0.9' \
+  -H 'cache-control: no-cache' \
+  -H 'content-type: multipart/form-data; boundary=----WebKitFormBoundarya8BsaBaIhi7YKQx7' \
+  -H 'cookie: connect.sid=YOUR_SESSION_COOKIE \
+  -H 'origin: https://doubao.happieapi.top' \
+  -H 'pragma: no-cache' \
+  -H 'priority: u=1, i' \
+  -H 'referer: https://doubao.happieapi.top/' \
+  -H 'sec-ch-ua: "Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Windows"' \
+  -H 'sec-fetch-dest: empty' \
+  -H 'sec-fetch-mode: cors' \
+  -H 'sec-fetch-site: same-origin' \
+  -H 'user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36' \
+  --data-raw $'------WebKitFormBoundarya8BsaBaIhi7YKQx7\r\nContent-Disposition: form-data; name="file"; filename="jimeng-2025-12-27-5924-一个小八哥举着牌子“视频解析内容提取”高高兴兴的叫着。卡通可爱.png"\r\nContent-Type: image/png\r\n\r\n\r\n------WebKitFormBoundarya8BsaBaIhi7YKQx7--\r\n'
+
+-- 返回
+{
+    "ok": true,
+    "url": "https://example.com/uploaded_image.jpg?X-Tos-Algorithm=TOS4-HMAC-SHA256&X-Tos-Credential=YOUR_ACCESS_KEY_ID&..."
+}
