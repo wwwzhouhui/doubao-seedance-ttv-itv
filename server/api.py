@@ -42,7 +42,7 @@ AUTH_TOKENS_RAW = os.getenv("AUTH_TOKEN", "")
 AUTH_TOKENS: List[str] = [t.strip() for t in AUTH_TOKENS_RAW.split(",") if t.strip()]
 
 # 解析多个cookie，支持逗号分隔
-SESSION_COOKIES: List[str] = [c.strip() for c in SESSION_COOKIES_RAW.split(",") if c.strip()]
+SESSION_COOKIES: List[str] = [unquote(c.strip()) for c in SESSION_COOKIES_RAW.split(",") if c.strip()]
 
 
 # ==================== 鉴权依赖 ====================
@@ -115,6 +115,11 @@ def get_headers(content_type: str = "application/json", cookie: Optional[str] = 
     # 如果未指定cookie，使用轮询选择器获取下一个
     if cookie is None:
         cookie = cookie_selector.get_next()
+
+    if cookie:
+        # 打印调试信息 (隐藏中间部分)
+        masked_cookie = f"{cookie[:10]}...{cookie[-10:]}" if len(cookie) > 20 else cookie
+        print(f"[Debug] 使用 Cookie: {masked_cookie}")
 
     return {
         "accept": "*/*",
@@ -307,7 +312,7 @@ async def upload_image(
         file_content = await file.read()
 
         # 构建multipart请求
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
             files = {
                 "file": (file.filename, file_content, file.content_type or "image/png")
             }
@@ -321,6 +326,14 @@ async def upload_image(
                 files=files,
                 headers=headers
             )
+
+            # 检查是否被重定向到了登录页
+            if "/login" in str(response.url):
+                return UploadResponse(
+                    success=False,
+                    message="上传失败: Session 已过期或无效，请更新 SESSION_COOKIE",
+                    data={"error": "Redirected to login page", "url": str(response.url)}
+                )
 
             if response.status_code == 200:
                 result = response.json()
@@ -387,12 +400,21 @@ async def create_video(
         if request.image:
             payload["image"] = request.image
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=120.0, follow_redirects=True) as client:
+            headers = get_headers()
             response = await client.post(
                 f"{BASE_URL}/api/video/create",
                 json=payload,
-                headers=get_headers()
+                headers=headers
             )
+
+            # 检查是否被重定向到了登录页
+            if "/login" in str(response.url):
+                return VideoCreateResponse(
+                    success=False,
+                    message="创建失败: Session 已过期或无效，请更新 SESSION_COOKIE",
+                    data={"error": "Redirected to login page", "url": str(response.url)}
+                )
 
             if response.status_code == 200:
                 result = response.json()
@@ -424,7 +446,7 @@ async def list_videos(token: str = Depends(verify_auth_token)):
         raise HTTPException(status_code=401, detail="未配置SESSION_COOKIE")
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             headers = get_headers()
             del headers["content-type"]  # GET请求不需要content-type
 
@@ -432,6 +454,13 @@ async def list_videos(token: str = Depends(verify_auth_token)):
                 f"{BASE_URL}/api/videos",
                 headers=headers
             )
+
+            # 检查是否被重定向到了登录页
+            if "/login" in str(response.url):
+                return VideoListResponse(
+                    success=False,
+                    message="获取失败: Session 已过期或无效，请更新 SESSION_COOKIE"
+                )
 
             if response.status_code == 200:
                 result = response.json()
@@ -468,7 +497,7 @@ async def get_video_count(token: str = Depends(verify_auth_token)):
         raise HTTPException(status_code=401, detail="未配置SESSION_COOKIE")
 
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             headers = get_headers()
             del headers["content-type"]
 
@@ -476,6 +505,10 @@ async def get_video_count(token: str = Depends(verify_auth_token)):
                 f"{BASE_URL}/api/stats/video-count",
                 headers=headers
             )
+
+            # 检查是否被重定向到了登录页
+            if "/login" in str(response.url):
+                return {"success": False, "message": "获取失败: Session 已过期或无效"}
 
             if response.status_code == 200:
                 return {"success": True, "data": response.json()}
@@ -501,7 +534,7 @@ async def get_video_status(
 
     try:
         # 通过获取视频列表来查找特定视频的状态
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
             headers = get_headers()
             del headers["content-type"]
 
@@ -509,6 +542,13 @@ async def get_video_status(
                 f"{BASE_URL}/api/videos",
                 headers=headers
             )
+
+            # 检查是否被重定向到了登录页
+            if "/login" in str(response.url):
+                return VideoStatusResponse(
+                    success=False,
+                    message="查询失败: Session 已过期或无效"
+                )
 
             if response.status_code == 200:
                 videos = response.json()
@@ -568,7 +608,7 @@ async def create_video_with_image(
         # 第一步: 上传图片
         file_content = await file.read()
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
             files = {
                 "file": (file.filename, file_content, file.content_type or "image/png")
             }
@@ -581,6 +621,13 @@ async def create_video_with_image(
                 files=files,
                 headers=headers
             )
+
+            # 检查是否被重定向到了登录页
+            if "/login" in str(upload_response.url):
+                return VideoCreateResponse(
+                    success=False,
+                    message="图片上传失败: Session 已过期或无效，请更新 SESSION_COOKIE"
+                )
 
             if upload_response.status_code != 200:
                 return VideoCreateResponse(
@@ -608,11 +655,19 @@ async def create_video_with_image(
                 "image": image_url
             }
 
+            headers = get_headers()
             create_response = await client.post(
                 f"{BASE_URL}/api/video/create",
                 json=payload,
-                headers=get_headers()
+                headers=headers
             )
+
+            # 检查是否被重定向到了登录页
+            if "/login" in str(create_response.url):
+                return VideoCreateResponse(
+                    success=False,
+                    message="视频创建失败: Session 已过期或无效"
+                )
 
             if create_response.status_code == 200:
                 result = create_response.json()
@@ -668,12 +723,20 @@ async def create_video_and_wait(
         if request.image:
             payload["image"] = request.image
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=120.0, follow_redirects=True) as client:
+            headers = get_headers()
             response = await client.post(
                 f"{BASE_URL}/api/video/create",
                 json=payload,
-                headers=get_headers()
+                headers=headers
             )
+
+            # 检查是否被重定向到了登录页
+            if "/login" in str(response.url):
+                return {
+                    "success": False,
+                    "message": "创建失败: Session 已过期或无效"
+                }
 
             if response.status_code != 200:
                 return {
@@ -701,10 +764,21 @@ async def create_video_and_wait(
                 await asyncio.sleep(poll_interval)
                 elapsed += poll_interval
 
+                # 重新获取 headers (因为 cookie 可能在轮询中变化，虽然目前是单次 client)
+                current_headers = get_headers()
+                del current_headers["content-type"]
+
                 videos_response = await client.get(
                     f"{BASE_URL}/api/videos",
-                    headers=headers
+                    headers=current_headers
                 )
+
+                if "/login" in str(videos_response.url):
+                    return {
+                        "success": False,
+                        "message": "轮询失败: Session 已过期或无效",
+                        "task_id": task_id
+                    }
 
                 if videos_response.status_code == 200:
                     videos = videos_response.json()
